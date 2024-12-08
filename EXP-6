@@ -1,0 +1,60 @@
+#include <stdio.h>
+#include <stdbool.h>
+struct Process {
+    char id[5];
+    int arrival_time;
+    int burst_time;
+    int remaining_time;
+    int priority;
+    int waiting_time;
+    int turnaround_time;
+    bool is_completed;
+};
+int findHighestPriority(struct Process p[], int n, int current_time) {
+    int highest_priority_index = -1;
+    int highest_priority = -1;
+    for (int i = 0; i < n; i++) {
+        if (p[i].arrival_time <= current_time && !p[i].is_completed) {
+            if (p[i].priority > highest_priority || highest_priority_index == -1) {
+                highest_priority = p[i].priority;
+                highest_priority_index = i;
+            }
+        }
+    }
+    return highest_priority_index;
+}
+int main() {
+    int n, completed = 0, current_time = 0;
+    printf("Enter the number of processes: ");
+    scanf("%d", &n);
+    struct Process processes[n];
+    for (int i = 0; i < n; i++) {
+        printf("Enter Process ID, Arrival Time, Burst Time, and Priority for Process %d: ", i + 1);
+        scanf("%s %d %d %d", processes[i].id, &processes[i].arrival_time, &processes[i].burst_time, &processes[i].priority);
+        processes[i].remaining_time = processes[i].burst_time;
+        processes[i].is_completed = false;
+    }
+    printf("\nGantt Chart:\n");
+    while (completed < n) {
+        int index = findHighestPriority(processes, n, current_time);
+        if (index != -1) {
+            printf("%s ", processes[index].id);
+            processes[index].remaining_time--;
+            current_time++;
+            if (processes[index].remaining_time == 0) {
+                processes[index].is_completed = true;
+                completed++;
+                processes[index].turnaround_time = current_time - processes[index].arrival_time;
+                processes[index].waiting_time = processes[index].turnaround_time - processes[index].burst_time;
+            }
+        } else {
+            current_time++;
+        }
+    }
+    printf("\n\nProcess Details:\n");
+    printf("ID\tArrival\tBurst\tPriority\tWaiting\tTurnaround\n");
+    for (int i = 0; i < n; i++) {
+        printf("%s\t%d\t%d\t%d\t\t%d\t%d\n", processes[i].id, processes[i].arrival_time,processes[i].burst_time, processes[i].priority, processes[i].waiting_time, processes[i].turnaround_time);
+    }
+    return 0;
+}
