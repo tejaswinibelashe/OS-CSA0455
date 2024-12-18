@@ -1,0 +1,142 @@
+#include <stdio.h>
+#include <stdbool.h>
+
+#define P 5  // Number of processes
+#define R 3  // Number of resources
+
+// Function to check if a process can finish
+bool isSafe(int processes[], int avail[], int max[][R], int allot[][R], int need[][R]) {
+    int work[R];
+    bool finish[P];
+    
+    // Initialize work and finish arrays
+    for (int i = 0; i < R; i++) {
+        work[i] = avail[i];
+    }
+    for (int i = 0; i < P; i++) {
+        finish[i] = false;
+    }
+    
+    // Find a process that can finish
+    int count = 0;
+    while (count < P) {
+        bool progress = false;
+        
+        for (int p = 0; p < P; p++) {
+            if (!finish[p]) {
+                bool canFinish = true;
+                
+                // Check if all resources can be satisfied
+                for (int r = 0; r < R; r++) {
+                    if (need[p][r] > work[r]) {
+                        canFinish = false;
+                        break;
+                    }
+                }
+                
+                // If can finish, add the allocated resources to work
+                if (canFinish) {
+                    for (int r = 0; r < R; r++) {
+                        work[r] += allot[p][r];
+                    }
+                    finish[p] = true;
+                    progress = true;
+                    count++;
+                    break;
+                }
+            }
+        }
+        
+        // If no process can proceed, the system is not in a safe state
+        if (!progress) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+// Function to request resources
+bool requestResources(int process, int request[], int avail[], int max[][R], int allot[][R], int need[][R]) {
+    // Check if request is less than or equal to the need
+    for (int r = 0; r < R; r++) {
+        if (request[r] > need[process][r]) {
+            printf("Error: Process has exceeded its maximum claim.\n");
+            return false;
+        }
+    }
+
+    // Check if request is less than or equal to the available resources
+    for (int r = 0; r < R; r++) {
+        if (request[r] > avail[r]) {
+            printf("Error: Not enough resources available.\n");
+            return false;
+        }
+    }
+
+    // Temporarily allocate resources
+    for (int r = 0; r < R; r++) {
+        avail[r] -= request[r];
+        allot[process][r] += request[r];
+        need[process][r] -= request[r];
+    }
+
+    // Check if the system is still in a safe state
+    if (isSafe(processes, avail, max, allot, need)) {
+        return true;
+    } else {
+        // Rollback if not safe
+        for (int r = 0; r < R; r++) {
+            avail[r] += request[r];
+            allot[process][r] -= request[r];
+            need[process][r] += request[r];
+        }
+        printf("Request cannot be granted, system would go into an unsafe state.\n");
+        return false;
+    }
+}
+
+int main() {
+    // Example data for processes, resources, max demands, allocations
+    int processes[] = {0, 1, 2, 3, 4};
+    int avail[] = {3, 3, 2}; // Available resources (e.g., A, B, C)
+    
+    // Maximum resources needed by each process
+    int max[][R] = {
+        {7, 5, 3},
+        {3, 2, 2},
+        {9, 0, 2},
+        {2, 2, 2},
+        {4, 3, 3}
+    };
+    
+    // Resources currently allocated to each process
+    int allot[][R] = {
+        {0, 1, 0},
+        {2, 0, 0},
+        {3, 0, 2},
+        {2, 1, 1},
+        {0, 0, 2}
+    };
+    
+    // Need matrix: Need = Max - Allot
+    int need[P][R];
+    for (int i = 0; i < P; i++) {
+        for (int j = 0; j < R; j++) {
+            need[i][j] = max[i][j] - allot[i][j];
+        }
+    }
+    
+    // Request resources for a process (for example, process 1 requests {1, 0, 2})
+    int request[] = {1, 0, 2};
+    int processIndex = 1;  // Process 1 requesting resources
+    
+    // Try to allocate resources and check if it's safe
+    if (requestResources(processIndex, request, avail, max, allot, need)) {
+        printf("Resources allocated successfully.\n");
+    } else {
+        printf("Resources request could not be granted.\n");
+    }
+    
+    return 0;
+}
