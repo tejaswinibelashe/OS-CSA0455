@@ -1,0 +1,79 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <unistd.h>
+
+// Shared resource
+int sharedVar = 0;
+
+// Mutex lock for synchronization
+pthread_mutex_t lock;
+
+// Function to increment the shared variable
+void *producer(void *arg) {
+    // Lock the mutex to get exclusive access to the shared resource
+    pthread_mutex_lock(&lock);
+
+    // Critical section: increment the shared variable
+    sharedVar++;
+    printf("Producer Thread %ld: Incremented sharedVar to %d\n", (long)arg, sharedVar);
+
+    // Unlock the mutex after modifying the shared resource
+    pthread_mutex_unlock(&lock);
+
+    return NULL;
+}
+
+// Function to decrement the shared variable
+void *consumer(void *arg) {
+    // Lock the mutex to get exclusive access to the shared resource
+    pthread_mutex_lock(&lock);
+
+    // Critical section: decrement the shared variable
+    sharedVar--;
+    printf("Consumer Thread %ld: Decremented sharedVar to %d\n", (long)arg, sharedVar);
+
+    // Unlock the mutex after modifying the shared resource
+    pthread_mutex_unlock(&lock);
+
+    return NULL;
+}
+
+int main() {
+    pthread_t producerThreads[5], consumerThreads[5]; // Arrays to hold thread IDs
+    int i;
+
+    // Initialize the mutex lock
+    if (pthread_mutex_init(&lock, NULL) != 0) {
+        printf("Mutex initialization failed!\n");
+        return -1;
+    }
+
+    // Create 5 producer threads
+    for (i = 0; i < 5; i++) {
+        pthread_create(&producerThreads[i], NULL, producer, (void *)(long)i);
+    }
+
+    // Create 5 consumer threads
+    for (i = 0; i < 5; i++) {
+        pthread_create(&consumerThreads[i], NULL, consumer, (void *)(long)(i + 5));
+    }
+
+    // Wait for all producer threads to finish
+    for (i = 0; i < 5; i++) {
+        pthread_join(producerThreads[i], NULL);
+    }
+
+    // Wait for all consumer threads to finish
+    for (i = 0; i < 5; i++) {
+        pthread_join(consumerThreads[i], NULL);
+    }
+
+    // Destroy the mutex lock
+    pthread_mutex_destroy(&lock);
+
+    // Output the final value of the shared variable
+    printf("Final value of sharedVar: %d\n", sharedVar);
+
+    return 0;
+}
